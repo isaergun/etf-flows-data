@@ -158,14 +158,19 @@ def compute_flows(shares_state: pd.DataFrame, today_shares: pd.DataFrame) -> pd.
         tk    = row["ticker"]
         today = pd.Timestamp(row["date"]).normalize()
         price = row.get("price")
-        if pd.isna(price) or price is None:
+
+        # No price → store NaN (couldn't compute)
+        if pd.isna(price) if price is not None else True:
+            rows.append({"date": today, "ticker": tk, "flow_usd": float("nan")})
+            log.debug(f"  {tk}: no price — storing NaN")
             continue
 
-        # Find previous shares for this ticker from state
+        # No previous shares → store NaN (first day, no baseline)
         prev = shares_state[shares_state["ticker"] == tk].sort_values("date")
         prev = prev[prev["date"] < today]
         if prev.empty:
-            log.debug(f"  {tk}: no previous shares — skipping flow calc (first day)")
+            rows.append({"date": today, "ticker": tk, "flow_usd": float("nan")})
+            log.debug(f"  {tk}: no previous shares — storing NaN")
             continue
 
         prev_shares = int(prev.iloc[-1]["shares"])
