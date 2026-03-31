@@ -1,0 +1,33 @@
+name: ETF Flows Collector
+
+on:
+  schedule:
+    - cron: '0 0,12 * * 1-5'   # 00:00 ve 12:00 UTC, Pzt–Cum
+  workflow_dispatch:
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install --quiet yfinance pandas requests beautifulsoup4
+
+      - name: Collect ETF data
+        run: python etf_scraper/collect.py
+
+      - name: Commit updated data
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "data: update ETF flows, AUM, shares [skip ci]"
+          file_pattern: data/etf_shares.csv data/etf_flows.csv data/etf_aum.csv
